@@ -1,12 +1,23 @@
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/api';
-import type { WithAuthenticatorProps } from '@aws-amplify/ui-react';
+import {
+    Button,
+    Card,
+    Collection,
+    Divider, Flex,
+    Heading,
+    Input,
+    Text,
+    View,
+    WithAuthenticatorProps
+} from '@aws-amplify/ui-react';
 import { withAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import config from './amplifyconfiguration.json';
 import {useEffect, useReducer} from "react";
 import {listTodos} from "./graphql/queries";
-import {List} from "antd";
+import {createTodo as createTodoMutation, deleteTodo as deleteTodoMutation} from "./graphql/mutations";
+import {onCreateTodo} from "./graphql/subscriptions";
 Amplify.configure(config);
 
 const initialStats = {
@@ -21,7 +32,7 @@ function reducer(state: any, action: any) {
         case 'SET_TODOS':
             return { ...state, todos: action.todos, loading: false };
         case 'ADD_TODO':
-            return { ...state, todos: [...state.todos, action.todo] };
+            return { ...state, todos: [action.todo, ...state.todos] };
         case 'RESET_FORM':
             return { ...state, form: initialStats.form };
         case 'SET_INPUT':
@@ -33,12 +44,13 @@ function reducer(state: any, action: any) {
     }
 }
 
+const client = generateClient();
+
 export function App({ signOut, user }: WithAuthenticatorProps) {
     const [state, dispatch] = useReducer(reducer, initialStats);
     
     async function fetchTodos() {
         try {
-            const client = generateClient();
             const todos = await client.graphql({ query: listTodos });
             dispatch({ type: 'SET_TODOS', todos: todos.data.listTodos.items})
         } catch (error) {
@@ -49,40 +61,114 @@ export function App({ signOut, user }: WithAuthenticatorProps) {
     
     useEffect(() => {
         fetchTodos();
+        const subscription = client.graphql({ query: onCreateTodo }).subscribe({
+            next: (eventData: any) => {
+                console.log('eventData', eventData);
+                const todo = eventData.data.onCreateTodo;
+                dispatch({ type: 'ADD_TODO', todo });
+            }
+        });
+        return () => subscription.unsubscribe();
     }, []);
     
-    const styles = {
-        container: { padding: 20 },
-        input: { marginBottom: 10 },
-        item: { textAlign: 'left' as 'left' },
-        p: { color: '#1890ff' },
-        error: { color: 'red' },
+    const createTodo = async () => {
+        const { form } = state;
+        if (!form.name || !form.description) {
+            return alert('please enter a name and description');
+        }
+        const todo = { ...form, id: Date.now() };
+        dispatch({ type: 'ADD_TODO', todo });
+        dispatch({ type: 'RESET_FORM' });
+        try {
+            await client.graphql({ query: createTodoMutation, variables: { input: todo } });
+            console.log('todo successfully created!');
+        } catch (error) {
+            console.log('error creating todo:', error);
+        }
     }
     
-    const renderItem = (item: any) => {
-        return (
-            <List.Item style={styles.item}>
-                <List.Item.Meta
-                    title={item.name}
-                    description={item.description}
-                />
-            </List.Item>
-        )
+    const deleteTodo = async ({ id }: any) => {
+        const newTodosArray = state.todos.filter((todo: any) => todo.id !== id);
+        dispatch({ type: 'SET_TODOS', todos: newTodosArray });
+        try {
+            await client.graphql({ query: deleteTodoMutation, variables: { input: { id } } });
+            console.log('todo successfully deleted!');
+        } catch (error) {
+            console.log('error deleting todo:', error);
+        }
+    }
+    
+    const onChange = (e: any) => {
+        dispatch({ type: 'SET_INPUT', name: e.target.name, value: e.target.value });
     }
     
     return (
-      <>
-        <h1>Hello {user?.username}</h1>
-        <h2>Todo list</h2>
-        <div>
-            <List style={styles.container}
-                loading={state.loading}
-                dataSource={state.todos}
-                renderItem={renderItem}
-            />
-        </div>
-        <button onClick={signOut}>Sign out</button>
-      </>
+    <View as="section" margin='1rem'>
+        <Heading level={1} width='100vw'>Hello {user?.username.split('-')[0]}</Heading>
+        <Heading level={2} width='100vw'>Todo list</Heading>
+        <Card
+            key={-1}
+            borderRadius="medium"
+            maxWidth="20rem"
+            variation="outlined"
+        >
+            <Flex
+                direction='row'
+                justifyContent={'space-between'}
+                >
+                <View>
+                    <Input
+                        name="name"
+                        onChange={onChange}
+                        value={state.form.name}
+                        placeholder="name"/>
+                    <Input
+                        name="description"
+                        onChange={onChange}
+                        value={state.form.description}
+                        placeholder="description"/>
+                </View>
+                <Button variation="primary" colorTheme="info" loadingText="Loading" onClick={createTodo}>Create Todo</Button>
+            </Flex>
+        </Card>
+        
+        <Flex direction="column">
+            <Divider
+                margin='2rem 0'
+                label="My Todos"
+                size="large"
+                orientation="horizontal" />
+        </Flex>
+        
+        <Collection
+            items={state.todos}
+            type="list"
+            direction="column"
+            gap="20px"
+            wrap="nowrap"
+        >
+            {(item: any, index) => (
+                <Card
+                    key={index}
+                    borderRadius="medium"
+                    maxWidth="20rem"
+                    variation="outlined"
+                >
+                    <Flex
+                        direction='row'
+                        justifyContent={'space-between'}
+                    >
+                        <View>
+                            <Heading level={2}>{item.name}</Heading>
+                            <Text>{item.description}</Text>
+                        </View>
+                        <Button variation="primary"  loadingText="Loading" onClick={() => deleteTodo(item)}>Delete</Button>
+                    </Flex>
+                </Card>
+            )}
+        </Collection>
+        <Button loadingText="Loading" onClick={signOut}>Sign out</Button>
+      </View>
   );
 }
 
