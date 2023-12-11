@@ -17,6 +17,15 @@
       },
       "api": {
         "amplifyreacttutorial": {}
+      },
+      "function": {
+        "S3Triggerf41fdb24": {
+          "deploymentBucketName": "amplify-amplifyreacttutorial-dev-12309-deployment",
+          "s3Key": "amplify-builds/S3Triggerf41fdb24-58594e51732b444c5670-build.zip"
+        }
+      },
+      "storage": {
+        "imageresizer": {}
       }
     }
   }
