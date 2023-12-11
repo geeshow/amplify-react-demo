@@ -2,8 +2,10 @@
   "resourceName": "imageresizer",
   "policyUUID": "b81bc72c",
   "bucketName": "amplifyimagetest",
-  "storageAccess": "auth",
-  "guestAccess": [],
+  "storageAccess": "authAndGuest",
+  "guestAccess": [
+    "READ"
+  ],
   "authAccess": [
     "CREATE_AND_UPDATE",
     "READ",

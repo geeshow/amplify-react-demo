@@ -59,6 +59,11 @@ export function Nav() {
             Todos
           </Button>
         </Link>
+        <Link href={'/gallery'}>
+          <Button loadingText="">
+            Gallery
+          </Button>
+        </Link>
         {user.isLogged && (
           <Button loadingText="Loading" onClick={todoSignOut}>Sign out</Button>
         )}
