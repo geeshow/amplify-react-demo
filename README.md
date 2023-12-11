@@ -1,6 +1,6 @@
 # Getting Started with Amplify React
 ## Overview
-This is a sample application for the [Getting Started with AWS Amplify](https://amzn.to/2LWaE0q) workshop. It is a simple social media app that allows users to post text and images and view posts from other users. The app uses the following AWS services:
+This is a sample application for the [Getting Started with AWS Amplify](https://docs.amplify.aws/) workshop. It is a simple social media app that allows users to post text and images and view posts from other users. The app uses the following AWS services:
 * [AWS Amplify](https://aws.amazon.com/amplify/) for the client libraries and hosting
 * [AWS Lambda](https://aws.amazon.com/lambda/) for the serverless function
 * [AWS AppSync](https://aws.amazon.com/appsync/) for the GraphQL API
